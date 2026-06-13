@@ -443,6 +443,11 @@ button {
   color: var(--amber);
 }
 
+.asset-icon.world {
+  background: rgba(54, 201, 247, 0.12);
+  color: var(--cyan);
+}
+
 .plugin-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -1322,6 +1327,221 @@ button {
   border-color: color-mix(in srgb, var(--preset) 34%, var(--line));
 }
 
+.world-section {
+  display: grid;
+  gap: 14px;
+}
+
+.world-hero,
+.world-layer-card,
+.world-control-block {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.world-hero {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+  background:
+    linear-gradient(135deg, rgba(54, 201, 247, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent),
+    var(--panel);
+}
+
+.world-hero span,
+.world-control-head span,
+.world-layer-head span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.world-hero strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 15px;
+}
+
+.world-hero p,
+.world-layer-card p,
+.world-transform-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.world-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.world-hero-stats div {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.world-hero-stats strong,
+.world-hero-stats span,
+.world-layer-head strong,
+.world-transform strong,
+.world-transform span {
+  display: block;
+}
+
+.world-hero-stats strong,
+.world-control-head strong {
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.world-layer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.world-layer-card {
+  --library: var(--cyan);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-color: color-mix(in srgb, var(--library) 28%, var(--line));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--library) 12%, transparent), transparent 52%),
+    var(--panel);
+}
+
+.world-layer-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.world-layer-head strong {
+  color: color-mix(in srgb, var(--library) 72%, white 12%);
+  font-size: 11px;
+}
+
+.world-layer-card select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--library) 24%, var(--line));
+  border-radius: var(--radius);
+  outline: 0;
+  background: #090d12;
+  color: var(--text);
+}
+
+.world-tags,
+.world-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.world-tags span,
+.world-chip,
+.world-transform {
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.world-tags span {
+  padding: 4px 7px;
+  color: color-mix(in srgb, var(--library) 78%, white 14%);
+  font-size: 10px;
+}
+
+.world-toolbar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.world-toolbar .text-button,
+.world-toolbar .action-button {
+  width: 100%;
+  margin-top: 0;
+}
+
+.world-switches {
+  display: grid;
+  gap: 8px;
+}
+
+.world-control-block {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.world-control-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.world-chip {
+  min-height: 28px;
+  padding: 0 9px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.world-chip.selected {
+  color: var(--green);
+  border-color: rgba(35, 209, 139, 0.52);
+  background: rgba(35, 209, 139, 0.12);
+}
+
+.world-transform-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.world-transform {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  text-align: left;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.world-transform strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.world-transform span {
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.world-transform.selected {
+  border-color: rgba(54, 201, 247, 0.4);
+  background: rgba(54, 201, 247, 0.1);
+}
+
+.world-slider-stack {
+  margin-top: 0;
+}
+
 .analysis-section {
   display: grid;
   gap: 14px;
@@ -1840,5 +2060,12 @@ button {
 
   .channel-strip-row {
     grid-auto-columns: 124px;
+  }
+
+  .world-hero-stats,
+  .world-layer-grid,
+  .world-toolbar,
+  .world-transform-grid {
+    grid-template-columns: 1fr;
   }
 }

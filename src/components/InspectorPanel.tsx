@@ -1,7 +1,8 @@
-import { Bot, CheckCircle2, GitCompareArrows, LineChart, Mic2, Radio, Sparkles, Upload, Users, WandSparkles } from 'lucide-react'
+import { Bot, CheckCircle2, GitCompareArrows, Globe2, LineChart, Mic2, Radio, Sparkles, Upload, Users, WandSparkles } from 'lucide-react'
 import { AnalysisPanel } from './AnalysisPanel'
 import { MicPanel } from './MicPanel'
 import { VocalPresetsPanel } from './VocalPresetsPanel'
+import { WorldVocalsPanel } from './WorldVocalsPanel'
 import type { LatencyCalibrationResult } from '../lib/latencyCalibration'
 import type {
   AiLogEntry,
@@ -13,6 +14,9 @@ import type {
   MasterSettings,
   Track,
   VocalPreset,
+  WorldVocalEngineState,
+  WorldVocalLibrary,
+  WorldVocalTransform,
 } from '../data/studioData'
 
 interface InspectorPanelProps {
@@ -27,6 +31,9 @@ interface InspectorPanelProps {
   tracks: Track[]
   vocalPresets: VocalPreset[]
   activePresetId: string
+  worldEngine: WorldVocalEngineState
+  worldLibraries: WorldVocalLibrary[]
+  worldTransforms: WorldVocalTransform[]
   micDevices: MediaDeviceInfo[]
   selectedMicId: string
   micStatus: string
@@ -39,6 +46,7 @@ interface InspectorPanelProps {
   detectedHz: number
   correctionCents: number
   liveAnalysis: LiveAnalysisState
+  projectBpm: number
   projectKey: string
   latency: LatencyCalibrationResult
   onTabChange: (tab: InspectorTab) => void
@@ -49,6 +57,9 @@ interface InspectorPanelProps {
   onMasterABToggle: () => void
   onUpload: () => void
   onApplyVocalPreset: (preset: VocalPreset) => void
+  onWorldEngineChange: (patch: Partial<WorldVocalEngineState>) => void
+  onWorldSwapLayers: () => void
+  onCreateWorldTrack: () => void
   onMicSelect: (deviceId: string) => void
   onMicConnect: () => void
   onMicRefresh: () => void
@@ -61,6 +72,7 @@ interface InspectorPanelProps {
 const tabs = [
   { id: 'ai', label: 'AI Mix', icon: Bot },
   { id: 'presets', label: 'Presets', icon: Sparkles },
+  { id: 'world', label: 'World', icon: Globe2 },
   { id: 'mastering', label: 'Master', icon: Sparkles },
   { id: 'analysis', label: 'Analyze', icon: LineChart },
   { id: 'mic', label: 'Mic', icon: Mic2 },
@@ -80,6 +92,9 @@ export function InspectorPanel({
   tracks,
   vocalPresets,
   activePresetId,
+  worldEngine,
+  worldLibraries,
+  worldTransforms,
   micDevices,
   selectedMicId,
   micStatus,
@@ -92,6 +107,7 @@ export function InspectorPanel({
   detectedHz,
   correctionCents,
   liveAnalysis,
+  projectBpm,
   projectKey,
   latency,
   onTabChange,
@@ -102,6 +118,9 @@ export function InspectorPanel({
   onMasterABToggle,
   onUpload,
   onApplyVocalPreset,
+  onWorldEngineChange,
+  onWorldSwapLayers,
+  onCreateWorldTrack,
   onMicSelect,
   onMicConnect,
   onMicRefresh,
@@ -275,6 +294,21 @@ export function InspectorPanel({
 
       {activeTab === 'analysis' && (
         <AnalysisPanel tracks={tracks} masterSettings={masterSettings} liveAnalysis={liveAnalysis} />
+      )}
+
+      {activeTab === 'world' && (
+        <WorldVocalsPanel
+          engine={worldEngine}
+          libraries={worldLibraries}
+          transforms={worldTransforms}
+          projectBpm={projectBpm}
+          projectKey={projectKey}
+          selectedTrackName={selectedTrack?.name ?? null}
+          onEngineChange={onWorldEngineChange}
+          onSwapLayers={onWorldSwapLayers}
+          onCreateTrack={onCreateWorldTrack}
+          onImportSamples={onUpload}
+        />
       )}
 
       {activeTab === 'collab' && (

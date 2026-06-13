@@ -14,17 +14,23 @@ import {
   initialAutoTuneSettings,
   initialLiveAnalysisState,
   initialMasterSettings,
+  initialWorldVocalEngine,
   initialTracks,
   initialTransport,
   loopPacks,
   projectName,
   vocalPresets,
+  worldVocalLibraries,
+  worldVocalTransforms,
   type AiLogEntry,
   type AutoTuneSettings,
   type Clip,
   type InspectorTab,
   type LiveAnalysisState,
   type MasterSettings,
+  type WorldVocalDivision,
+  type WorldVocalEngineState,
+  type WorldVocalLibrary,
   type Track,
   type TrackType,
   type TransportState,
@@ -68,6 +74,15 @@ const spectralCentroid = (data: Uint8Array, sampleRate: number) => {
   }
 
   return magnitude > 0 ? Math.round(weighted / magnitude) : 0
+}
+
+const worldDivisionBeats: Record<WorldVocalDivision, number> = {
+  '1/16': 0.25,
+  '1/8': 0.5,
+  '1/4': 1,
+  '1/2': 2,
+  '1 bar': 4,
+  '2 bars': 8,
 }
 
 function App() {
@@ -119,6 +134,7 @@ function App() {
   })
   const [projectTitle, setProjectTitle] = useState(projectName)
   const [activeVocalPresetId, setActiveVocalPresetId] = useState(vocalPresets[0]?.id ?? '')
+  const [worldEngine, setWorldEngine] = useState<WorldVocalEngineState>(initialWorldVocalEngine)
   const [snapEnabled, setSnapEnabled] = useState(true)
   const [masterAB, setMasterAB] = useState<'before' | 'after'>('after')
 
@@ -130,6 +146,18 @@ function App() {
     }
     return null
   }, [selectedClipId, tracks])
+  const activeWorldLayerA = useMemo(
+    () => worldVocalLibraries.find((library) => library.id === worldEngine.layerAId) ?? worldVocalLibraries[0] ?? null,
+    [worldEngine.layerAId],
+  )
+  const activeWorldLayerB = useMemo(
+    () => worldVocalLibraries.find((library) => library.id === worldEngine.layerBId) ?? worldVocalLibraries[1] ?? worldVocalLibraries[0] ?? null,
+    [worldEngine.layerBId],
+  )
+  const activeWorldTransform = useMemo(
+    () => worldVocalTransforms.find((transform) => transform.id === worldEngine.transformId) ?? worldVocalTransforms[0] ?? null,
+    [worldEngine.transformId],
+  )
 
   const refreshInputDevices = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) {
@@ -662,6 +690,80 @@ function App() {
     }
   }
 
+  const appendTrackToSession = (track: Track, clipId: string | null = track.clips[0]?.id ?? null) => {
+    setTracks((current) => {
+      const withoutMaster = current.filter((item) => item.type !== 'bus')
+      const master = current.find((item) => item.type === 'bus')
+      return master ? [...withoutMaster, track, master] : [...current, track]
+    })
+    setSelectedTrackId(track.id)
+    setSelectedClipId(clipId)
+  }
+
+  const pushAiLog = (entry: AiLogEntry, limit = 6) => {
+    setAiLog((current) => [entry, ...current].slice(0, limit))
+  }
+
+  const buildWorldTextureTrack = (layerA: WorldVocalLibrary, layerB: WorldVocalLibrary) => {
+    const trackId = makeId('trk')
+    const clipId = makeId('clip')
+    const divisionBeats = worldDivisionBeats[worldEngine.division]
+    const clipLength = worldEngine.lengthLock ? Math.max(4, Math.round(divisionBeats * 8)) : 16
+    const startBeat = snapEnabled ? Math.max(0, Math.round(playheadBeat / 4) * 4) : playheadBeat
+    const transformName = activeWorldTransform?.name ?? 'Morph'
+    const characterName = `${worldEngine.character.slice(0, 1).toUpperCase()}${worldEngine.character.slice(1)}`
+    const waveformSeed = 2 + (worldEngine.blend + worldEngine.morph + worldEngine.cloudDensity + worldEngine.attackSpread) / 26
+    const clip: Clip = {
+      id: clipId,
+      trackId,
+      type: 'audio',
+      name: `${transformName} ${worldEngine.division} phrases`,
+      startBeat,
+      lengthBeats: clipLength,
+      color: layerA.color,
+      gain: Number((0.58 + worldEngine.blend / 250).toFixed(2)),
+      fadeIn: Number((0.04 + worldEngine.attackSpread / 500).toFixed(2)),
+      fadeOut: Number((0.08 + worldEngine.cloudDensity / 400).toFixed(2)),
+      pitchShift: worldEngine.morph > 68 ? -2 : 0,
+      timeStretch: worldEngine.bpmSync ? 1 : Number((1 + worldEngine.sampleStartRandomness / 420).toFixed(2)),
+      waveform: starterWave(waveformSeed, 64),
+    }
+    const track: Track = {
+      id: trackId,
+      type: 'audio',
+      name: layerA.id === layerB.id ? `${layerA.name} Texture` : `${layerA.region} x ${layerB.region} Morph`,
+      color: layerA.color,
+      input: worldEngine.importedSampleReady ? 'World vocal engine / import ready' : 'World vocal engine',
+      volume: Number((0.58 + worldEngine.blend / 300).toFixed(2)),
+      pan: worldEngine.morph > 52 ? 0.08 : 0,
+      meter: Number((0.46 + worldEngine.cloudDensity / 240).toFixed(2)),
+      muted: false,
+      solo: false,
+      armed: false,
+      monitoring: true,
+      inserts: [
+        { id: makeId('insert'), name: `${layerA.region} Layer`, enabled: true, amount: worldEngine.blend },
+        { id: makeId('insert'), name: `${layerB.region} Layer`, enabled: true, amount: 100 - worldEngine.blend },
+        { id: makeId('insert'), name: transformName, enabled: true, amount: worldEngine.morph },
+        { id: makeId('insert'), name: `${characterName} Character`, enabled: true, amount: 74 },
+        {
+          id: makeId('insert'),
+          name: worldEngine.cloudDensity > 32 ? 'Cloud Motion' : 'Tight Phrase Gate',
+          enabled: true,
+          amount: Math.max(worldEngine.cloudDensity, 28),
+        },
+        { id: makeId('insert'), name: 'Pitch Glue', enabled: true, amount: 62 },
+      ],
+      sends: {
+        reverb: Number((0.14 + worldEngine.cloudDensity / 180).toFixed(2)),
+        delay: Number((0.06 + worldEngine.sampleStartRandomness / 260).toFixed(2)),
+      },
+      clips: [clip],
+    }
+
+    return { track, clipId, trackLabel: track.name, clipLabel: clip.name }
+  }
+
   const addTrack = (type: TrackType) => {
     const color = type === 'audio' ? '#ff6b5f' : type === 'drum' ? '#23d18b' : '#36c9f7'
     const id = makeId('trk')
@@ -711,13 +813,7 @@ function App() {
       clips: [clip],
     }
 
-    setTracks((current) => {
-      const withoutMaster = current.filter((item) => item.type !== 'bus')
-      const master = current.find((item) => item.type === 'bus')
-      return master ? [...withoutMaster, track, master] : [...current, track]
-    })
-    setSelectedTrackId(id)
-    setSelectedClipId(clip.id)
+    appendTrackToSession(track, clip.id)
     setRenderStatus(`${track.name} added`)
   }
 
@@ -731,6 +827,94 @@ function App() {
 
     addTrack(kind)
     setRenderStatus(`${pack.name} loaded as ${kind} track`)
+  }
+
+  const updateWorldEngine = (patch: Partial<WorldVocalEngineState>) => {
+    setWorldEngine((current) => ({ ...current, ...patch }))
+
+    if (patch.transformId) {
+      const transform = worldVocalTransforms.find((item) => item.id === patch.transformId)
+      setRenderStatus(`${transform?.name ?? 'World'} transform armed`)
+      return
+    }
+
+    if (patch.character) {
+      setRenderStatus(`${patch.character} character armed`)
+      return
+    }
+
+    if (patch.division) {
+      setRenderStatus(`Phrase division ${patch.division}`)
+      return
+    }
+
+    if (patch.layerAId || patch.layerBId) {
+      setRenderStatus('World vocal layer updated')
+      return
+    }
+
+    if (typeof patch.bpmSync === 'boolean') {
+      setRenderStatus(`BPM sync ${patch.bpmSync ? 'on' : 'off'}`)
+      return
+    }
+
+    if (typeof patch.lengthLock === 'boolean') {
+      setRenderStatus(`Length lock ${patch.lengthLock ? 'on' : 'off'}`)
+      return
+    }
+
+    if (typeof patch.importedSampleReady === 'boolean') {
+      setRenderStatus(patch.importedSampleReady ? 'Import lane armed' : 'Import lane parked')
+    }
+  }
+
+  const swapWorldLayers = () => {
+    setWorldEngine((current) => ({
+      ...current,
+      layerAId: current.layerBId,
+      layerBId: current.layerAId,
+    }))
+    setActiveTab('world')
+    setRenderStatus('World layers swapped')
+  }
+
+  const loadWorldLibrary = (library: WorldVocalLibrary) => {
+    setWorldEngine((current) => ({ ...current, layerAId: library.id }))
+    const { track, clipId, trackLabel, clipLabel } = buildWorldTextureTrack(library, library)
+    appendTrackToSession(track, clipId)
+    pushAiLog(
+      {
+        id: makeId('world'),
+        title: `${library.name} armed`,
+        detail: `Loaded ${clipLabel.toLowerCase()} from ${library.region} with ${activeWorldTransform?.name ?? 'Morph'} transform ready for printing.`,
+        confidence: 88,
+      },
+      6,
+    )
+    setActiveTab('world')
+    setRenderStatus(`${trackLabel} loaded`)
+  }
+
+  const createWorldTrack = () => {
+    if (!activeWorldLayerA || !activeWorldLayerB) {
+      setActiveTab('world')
+      setRenderStatus('World vocal layers unavailable')
+      return
+    }
+
+    const { track, clipId, trackLabel, clipLabel } = buildWorldTextureTrack(activeWorldLayerA, activeWorldLayerB)
+    appendTrackToSession(track, clipId)
+    pushAiLog(
+      {
+        id: makeId('world'),
+        title: 'World morph printed',
+        detail: `${trackLabel} / ${clipLabel} / ${activeWorldTransform?.name ?? 'Morph'} / ${worldEngine.character} character / ${worldEngine.blend}% blend.`,
+        confidence: 90,
+      },
+      6,
+    )
+    setActiveTab('world')
+    setRenderStatus('World morph track printed')
   }
 
   const addPluginToSelectedTrack = (plugin: string) => {
@@ -861,6 +1045,7 @@ function App() {
       setMasterSettings(initialMasterSettings)
       setAutoTune(initialAutoTuneSettings)
       setActiveVocalPresetId(vocalPresets[0]?.id ?? '')
+      setWorldEngine(initialWorldVocalEngine)
       setLiveAnalysis(initialLiveAnalysisState)
       setDetectedPitch({ hz: 0, note: '—', target: '—', correctionCents: 0 })
       setMicMonitor(true)
@@ -883,17 +1068,21 @@ function App() {
       liveAnalysis.frame > 0
         ? ` Live vocal: ${Math.round(Math.abs(liveAnalysis.correctionCents))} cents tune GR, ${liveAnalysis.spectralCentroidHz || 0} Hz centroid, ${Math.round(liveAnalysis.pitchConfidence * 100)}% pitch lock.`
         : ''
+    const worldDetail =
+      activeWorldLayerA && activeWorldLayerB
+        ? ` World layer: ${activeWorldLayerA.region} x ${activeWorldLayerB.region}, ${worldEngine.blend}% blend, ${activeWorldTransform?.name ?? 'Morph'} transform.`
+        : ''
     const entry: AiLogEntry = {
       id: makeId('ai'),
       title: 'Mix pass applied',
       detail:
         aiPrompt.length > 0
-          ? `Applied: ${aiPrompt.slice(0, 108)}${aiPrompt.length > 108 ? '...' : ''}${liveDetail}`
-          : `Balanced vocal, low end, and limiter headroom with transparent gain moves.${liveDetail}`,
+          ? `Applied: ${aiPrompt.slice(0, 108)}${aiPrompt.length > 108 ? '...' : ''}${liveDetail}${worldDetail}`
+          : `Balanced vocal, low end, and limiter headroom with transparent gain moves.${liveDetail}${worldDetail}`,
       confidence: 89,
     }
 
-    setAiLog((current) => [entry, ...current].slice(0, 5))
+    pushAiLog(entry, 5)
     setTracks((current) =>
       current.map((track) => {
         if (track.name.includes('Lead Vocal')) return { ...track, volume: Math.min(1, track.volume + 0.05), meter: 0.66 }
@@ -986,6 +1175,7 @@ function App() {
           onAddTrack={addTrack}
           onUpload={() => fileInputRef.current?.click()}
           onLoadPack={loadLibraryPack}
+          onLoadWorldLibrary={loadWorldLibrary}
           onLoadPlugin={addPluginToSelectedTrack}
         />
         <Arrangement
@@ -1021,6 +1211,9 @@ function App() {
           tracks={tracks}
           vocalPresets={vocalPresets}
           activePresetId={activeVocalPresetId}
+          worldEngine={worldEngine}
+          worldLibraries={worldVocalLibraries}
+          worldTransforms={worldVocalTransforms}
           micDevices={micDevices}
           selectedMicId={selectedMicId}
           micStatus={micStatus}
@@ -1033,6 +1226,7 @@ function App() {
           detectedHz={detectedPitch.hz}
           correctionCents={detectedPitch.correctionCents}
           liveAnalysis={liveAnalysis}
+          projectBpm={transport.bpm}
           projectKey={transport.key}
           latency={latency}
           onTabChange={setActiveTab}
@@ -1046,6 +1240,9 @@ function App() {
           }}
           onUpload={() => fileInputRef.current?.click()}
           onApplyVocalPreset={applyVocalPreset}
+          onWorldEngineChange={updateWorldEngine}
+          onWorldSwapLayers={swapWorldLayers}
+          onCreateWorldTrack={createWorldTrack}
           onMicSelect={setSelectedMicId}
           onMicConnect={() => void armMicInput()}
           onMicRefresh={() => void refreshInputDevices()}

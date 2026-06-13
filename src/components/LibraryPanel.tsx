@@ -1,14 +1,15 @@
-import { Drum, Mic2, Piano, Plus, Search, WandSparkles, Zap } from 'lucide-react'
-import { loopPacks, pluginRack, type TrackType } from '../data/studioData'
+import { Drum, Globe2, Mic2, Piano, Plus, Search, WandSparkles, Zap } from 'lucide-react'
+import { loopPacks, pluginRack, worldVocalLibraries, type TrackType, type WorldVocalLibrary } from '../data/studioData'
 
 interface LibraryPanelProps {
   onAddTrack: (type: TrackType) => void
   onUpload: () => void
   onLoadPack: (pack: (typeof loopPacks)[number]) => void
+  onLoadWorldLibrary: (library: WorldVocalLibrary) => void
   onLoadPlugin: (plugin: string) => void
 }
 
-export function LibraryPanel({ onAddTrack, onUpload, onLoadPack, onLoadPlugin }: LibraryPanelProps) {
+export function LibraryPanel({ onAddTrack, onUpload, onLoadPack, onLoadWorldLibrary, onLoadPlugin }: LibraryPanelProps) {
   return (
     <aside className="library-panel">
       <div className="panel-heading">
@@ -53,6 +54,25 @@ export function LibraryPanel({ onAddTrack, onUpload, onLoadPack, onLoadPlugin }:
                 <strong>{pack.name}</strong>
                 <small>
                   {pack.type} / {pack.tempo} BPM / {pack.key}
+                </small>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2>World vocals</h2>
+        <div className="asset-list">
+          {worldVocalLibraries.map((library) => (
+            <button type="button" key={library.id} className="asset-row" onClick={() => onLoadWorldLibrary(library)}>
+              <span className="asset-icon world">
+                <Globe2 size={14} />
+              </span>
+              <span>
+                <strong>{library.name}</strong>
+                <small>
+                  {library.region} / {library.phraseFocus} / {library.tempoRange}
                 </small>
               </span>
             </button>

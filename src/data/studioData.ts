@@ -1,8 +1,10 @@
 export type TrackType = 'audio' | 'midi' | 'drum' | 'bus'
 export type ClipType = 'audio' | 'midi' | 'drum'
-export type InspectorTab = 'ai' | 'presets' | 'mastering' | 'analysis' | 'mic' | 'collab' | 'clip'
+export type InspectorTab = 'ai' | 'presets' | 'world' | 'mastering' | 'analysis' | 'mic' | 'collab' | 'clip'
 export type MasterMode = 'easy' | 'preset' | 'custom'
 export type StudioMode = 'studio' | 'mix' | 'master' | 'library' | 'collab' | 'settings'
+export type WorldVocalCharacter = 'neutral' | 'silk' | 'dark' | 'edgy'
+export type WorldVocalDivision = '1/16' | '1/8' | '1/4' | '1/2' | '1 bar' | '2 bars'
 
 export interface InsertSlot {
   id: string
@@ -135,6 +137,40 @@ export interface VocalPreset {
     delay: number
   }
   tags: string[]
+}
+
+export interface WorldVocalLibrary {
+  id: string
+  name: string
+  region: string
+  palette: string
+  phraseFocus: string
+  tempoRange: string
+  performers: number
+  color: string
+  tags: string[]
+}
+
+export interface WorldVocalTransform {
+  id: string
+  name: string
+  detail: string
+}
+
+export interface WorldVocalEngineState {
+  layerAId: string
+  layerBId: string
+  bpmSync: boolean
+  lengthLock: boolean
+  division: WorldVocalDivision
+  blend: number
+  morph: number
+  transformId: string
+  character: WorldVocalCharacter
+  sampleStartRandomness: number
+  attackSpread: number
+  cloudDensity: number
+  importedSampleReady: boolean
 }
 
 export const projectName = 'Neon Session 07'
@@ -436,6 +472,167 @@ export const collaborators: Collaborator[] = [
   { id: 'collab-3', name: 'Artist', role: 'Vocal', color: '#ff6b5f', status: 'idle', latencyMs: 62 },
 ]
 
+export const worldVocalLibraries: WorldVocalLibrary[] = [
+  {
+    id: 'african-chant-ensemble',
+    name: 'African Chant Ensemble',
+    region: 'Africa',
+    palette: 'Raw chants, response phrases, and stomping ensemble hooks for high-energy sections.',
+    phraseFocus: 'ensemble calls',
+    tempoRange: '98-146 BPM',
+    performers: 4,
+    color: '#f0c84b',
+    tags: ['chants', 'ensemble', 'ceremony'],
+  },
+  {
+    id: 'balkan-harmony-stack',
+    name: 'Balkan Harmony Stack',
+    region: 'Balkans',
+    palette: 'Tense interval clusters and rising harmonies that cut through cinematic or club drops.',
+    phraseFocus: 'stacked harmonies',
+    tempoRange: '88-138 BPM',
+    performers: 2,
+    color: '#36c9f7',
+    tags: ['harmony', 'cinematic', 'folk'],
+  },
+  {
+    id: 'cambodian-mist-lines',
+    name: 'Cambodian Mist Lines',
+    region: 'Southeast Asia',
+    palette: 'Breathy melodic phrases with eerie overtones for intros, bridges, and ambient lifts.',
+    phraseFocus: 'haunting melodies',
+    tempoRange: '72-128 BPM',
+    performers: 2,
+    color: '#7dd3fc',
+    tags: ['ambient', 'mist', 'phrases'],
+  },
+  {
+    id: 'inca-spirit-calls',
+    name: 'Inca Spirit Calls',
+    region: 'Andes',
+    palette: 'Ancient-sounding calls and vowel drones suited to ritual textures and wide hooks.',
+    phraseFocus: 'spirit calls',
+    tempoRange: '80-132 BPM',
+    performers: 2,
+    color: '#23d18b',
+    tags: ['ritual', 'wide', 'drones'],
+  },
+  {
+    id: 'india-raga-phrases',
+    name: 'India Raga Phrases',
+    region: 'India',
+    palette: 'Ornamented lead phrases, slides, and sustained notes for melodic toplines.',
+    phraseFocus: 'raga ornaments',
+    tempoRange: '76-148 BPM',
+    performers: 3,
+    color: '#ff9f6b',
+    tags: ['lead', 'ornaments', 'melodic'],
+  },
+  {
+    id: 'mideast-desert-hooks',
+    name: 'MidEast Desert Hooks',
+    region: 'Middle East',
+    palette: 'Improvised phrases and hook-ready lines with focused mids and urgent emotional pull.',
+    phraseFocus: 'hook phrases',
+    tempoRange: '90-150 BPM',
+    performers: 2,
+    color: '#ff6b5f',
+    tags: ['hook', 'improv', 'urgent'],
+  },
+  {
+    id: 'mideast-nocturne-solos',
+    name: 'MidEast Nocturne Solos',
+    region: 'Middle East',
+    palette: 'Night-textured solo passages for darker intros, breakdowns, and atmospheric layering.',
+    phraseFocus: 'solo passages',
+    tempoRange: '72-136 BPM',
+    performers: 3,
+    color: '#b78cff',
+    tags: ['dark', 'solo', 'nocturne'],
+  },
+  {
+    id: 'persian-silk-ornaments',
+    name: 'Persian Silk Ornaments',
+    region: 'Iran',
+    palette: 'Detailed ornaments and sustained notes that sit well with tuned leads and vocal doubles.',
+    phraseFocus: 'ornamental leads',
+    tempoRange: '82-142 BPM',
+    performers: 1,
+    color: '#f472b6',
+    tags: ['ornaments', 'lead', 'silk'],
+  },
+  {
+    id: 'ritual-circle-phrases',
+    name: 'Ritual Circle Phrases',
+    region: 'Africa + South America',
+    palette: 'Layered tribal phrases for drops, intros, and cinematic tension builds.',
+    phraseFocus: 'tribal phrases',
+    tempoRange: '96-144 BPM',
+    performers: 4,
+    color: '#22c55e',
+    tags: ['tribal', 'impact', 'drop'],
+  },
+  {
+    id: 'sephardic-lament-hooks',
+    name: 'Sephardic Lament Hooks',
+    region: 'Mediterranean diaspora',
+    palette: 'Emotional melodies and broken-heart phrases for expressive toplines and bridges.',
+    phraseFocus: 'lament hooks',
+    tempoRange: '68-126 BPM',
+    performers: 1,
+    color: '#94a3b8',
+    tags: ['emotive', 'bridge', 'lament'],
+  },
+  {
+    id: 'slavic-duet-layers',
+    name: 'Slavic Duet Layers',
+    region: 'Eastern Europe',
+    palette: 'Tight duet phrases and soaring vowels for choruses, stacks, and cinematic refrains.',
+    phraseFocus: 'duet layers',
+    tempoRange: '86-140 BPM',
+    performers: 2,
+    color: '#8b5cf6',
+    tags: ['duet', 'chorus', 'layers'],
+  },
+]
+
+export const worldVocalTransforms: WorldVocalTransform[] = [
+  { id: 'cathedral', name: 'Cathedral', detail: 'Blooming convolution tail for giant prayer-like lifts.' },
+  { id: 'chamber', name: 'Chamber', detail: 'Tight room resonance that keeps phrases close and focused.' },
+  { id: 'glass', name: 'Glass', detail: 'Bright refractive sheen for modern topline chops.' },
+  { id: 'dust', name: 'Dust', detail: 'Lo-fi air and age for archival texture.' },
+  { id: 'halo', name: 'Halo', detail: 'Wide shimmer for stacked refrains and adlibs.' },
+  { id: 'ember', name: 'Ember', detail: 'Warm harmonic smear for darker verses.' },
+  { id: 'mist', name: 'Mist', detail: 'Diffuse cloud wash for intros and ambient beds.' },
+  { id: 'ribbon', name: 'Ribbon', detail: 'Smooth tape-like motion with softer transients.' },
+  { id: 'prism', name: 'Prism', detail: 'Split-band tone shift that exaggerates vowel color.' },
+  { id: 'grain', name: 'Grain', detail: 'Granular push for broken phrase stutters.' },
+  { id: 'oracle', name: 'Oracle', detail: 'Formant-focused presence for lead phrases.' },
+  { id: 'bronze', name: 'Bronze', detail: 'Dense low-mid weight for ceremonial stacks.' },
+  { id: 'velvet', name: 'Velvet', detail: 'Soft transient contour for intimate lines.' },
+  { id: 'ghost', name: 'Ghost', detail: 'Thin spectral diffusion for back-of-room doubles.' },
+  { id: 'shard', name: 'Shard', detail: 'Edgy attack contour for aggressive vocal chops.' },
+]
+
+export const worldVocalDivisions: WorldVocalDivision[] = ['1/16', '1/8', '1/4', '1/2', '1 bar', '2 bars']
+export const worldVocalCharacters: WorldVocalCharacter[] = ['neutral', 'silk', 'dark', 'edgy']
+
+export const initialWorldVocalEngine: WorldVocalEngineState = {
+  layerAId: worldVocalLibraries[0]?.id ?? '',
+  layerBId: worldVocalLibraries[1]?.id ?? '',
+  bpmSync: true,
+  lengthLock: true,
+  division: '1/4',
+  blend: 58,
+  morph: 44,
+  transformId: worldVocalTransforms[0]?.id ?? '',
+  character: 'silk',
+  sampleStartRandomness: 26,
+  attackSpread: 32,
+  cloudDensity: 18,
+  importedSampleReady: true,
+}
+
 export const loopPacks = [
   { name: 'Midnight vox chops', type: 'Audio loop', tempo: 142, key: 'F min' },
   { name: 'Clean drill hats', type: 'Drum kit', tempo: 142, key: 'Any' },
@@ -446,6 +643,7 @@ export const loopPacks = [
 export const pluginRack = [
   'AI Mix Balance',
   'Auto Pitch',
+  'World Morph Engine',
   'Reference Match',
   'Stem Cleaner',
   'Tape Saturator',
