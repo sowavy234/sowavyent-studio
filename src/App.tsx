@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { Arrangement } from './components/Arrangement'
 import { CollaborationStrip } from './components/CollaborationStrip'
@@ -38,6 +38,7 @@ import {
   type VocalPreset,
 } from './data/studioData'
 import { StudioAudioEngine, makeProjectExport } from './lib/audioEngine'
+import { buildAutoMixMasterPass } from './lib/aiSessionAssistant'
 import {
   compensatedStartBeat,
   runLatencyCalibration,
@@ -137,6 +138,7 @@ function App() {
   const [worldEngine, setWorldEngine] = useState<WorldVocalEngineState>(initialWorldVocalEngine)
   const [snapEnabled, setSnapEnabled] = useState(true)
   const [masterAB, setMasterAB] = useState<'before' | 'after'>('after')
+  const [isAutoFinishing, setIsAutoFinishing] = useState(false)
 
   const selectedTrack = tracks.find((track) => track.id === selectedTrackId) ?? null
   const selectedClip = useMemo(() => {
@@ -1153,6 +1155,128 @@ function App() {
     setRenderStatus('Session JSON exported')
   }
 
+  const handleTransportChange = useCallback((nextTransport: TransportState) => {
+    setTransport(nextTransport)
+
+    if (nextTransport.bpm !== transport.bpm) {
+      setRenderStatus(`Tempo ${nextTransport.bpm} BPM`)
+      return
+    }
+
+    if (nextTransport.key !== transport.key) {
+      setRenderStatus(`Project key ${nextTransport.key}`)
+      return
+    }
+
+    if (nextTransport.timeSignature !== transport.timeSignature) {
+      setRenderStatus(`Time signature ${nextTransport.timeSignature}`)
+      return
+    }
+
+    if (nextTransport.loopEnabled !== transport.loopEnabled) {
+      setRenderStatus(`Loop ${nextTransport.loopEnabled ? 'enabled' : 'disabled'}`)
+      return
+    }
+
+    if (nextTransport.metronome !== transport.metronome) {
+      setRenderStatus(`Metronome ${nextTransport.metronome ? 'enabled' : 'disabled'}`)
+    }
+  }, [transport])
+
+  const handleModeChange = useCallback((mode: StudioMode) => {
+    setActiveMode(mode)
+
+    if (mode === 'mix') {
+      setActiveTab('ai')
+      setRenderStatus('Mix desk focused')
+      return
+    }
+
+    if (mode === 'master') {
+      setActiveTab('mastering')
+      setRenderStatus('Master desk focused')
+      return
+    }
+
+    if (mode === 'library') {
+      setActiveTab('world')
+      setRenderStatus('Library focus active')
+      return
+    }
+
+    if (mode === 'collab') {
+      setActiveTab('collab')
+      setRenderStatus('Collaboration view active')
+      return
+    }
+
+    if (mode === 'settings') {
+      setActiveTab('mic')
+      setRenderStatus('Input tools active')
+      return
+    }
+
+    setActiveTab(selectedClip ? 'clip' : 'presets')
+    setRenderStatus('Studio focus active')
+  }, [selectedClip])
+
+  const handleInspectorTabChange = useCallback((tab: InspectorTab) => {
+    setActiveTab(tab)
+
+    if (tab === 'ai' || tab === 'analysis') {
+      setActiveMode('mix')
+    } else if (tab === 'mastering') {
+      setActiveMode('master')
+    } else if (tab === 'world') {
+      setActiveMode('library')
+    } else if (tab === 'collab') {
+      setActiveMode('collab')
+    } else if (tab === 'mic') {
+      setActiveMode('settings')
+    } else {
+      setActiveMode('studio')
+    }
+  }, [])
+
+  const runAutoMixAndMaster = useCallback(async () => {
+    if (isAutoFinishing) return
+
+    setIsAutoFinishing(true)
+    setActiveMode('mix')
+    setActiveTab('ai')
+    setRenderStatus('AI is listening to the full session')
+
+    await new Promise((resolve) => window.setTimeout(resolve, 0))
+
+    try {
+      const result = buildAutoMixMasterPass({
+        autoTune,
+        createId: makeId,
+        liveAnalysis,
+        masterSettings,
+        tracks,
+        transport,
+        worldEngine,
+      })
+
+      startTransition(() => {
+        setTracks(result.tracks)
+        setMasterSettings(result.masterSettings)
+        setAutoTune(result.autoTune)
+        setAiPrompt(result.recommendedPrompt)
+        setAiLog((current) => [...result.logEntries, ...current].slice(0, 6))
+        if (result.focusTrackId) setSelectedTrackId(result.focusTrackId)
+      })
+
+      setMasterAB('after')
+      setRenderStatus(result.status)
+    } catch (error) {
+      setRenderStatus(error instanceof Error ? error.message : 'AI auto mix + master failed')
+    } finally {
+      setIsAutoFinishing(false)
+    }
+  }, [autoTune, isAutoFinishing, liveAnalysis, masterSettings, tracks, transport, worldEngine])
+
   return (
     <div className="studio-shell">
       <TransportBar
@@ -1161,16 +1285,18 @@ function App() {
         isPlaying={isPlaying}
         playheadBeat={playheadBeat}
         renderStatus={renderStatus}
+        isAutoFinishing={isAutoFinishing}
         onPlayPause={handlePlayPause}
         onStop={stopPlayback}
         onRecord={handleRecord}
-        onTransportChange={setTransport}
+        onTransportChange={handleTransportChange}
+        onAutoMixMaster={runAutoMixAndMaster}
         onUpload={() => fileInputRef.current?.click()}
         onExport={exportSession}
       />
 
       <div className="studio-grid">
-        <ModeRail activeMode={activeMode} onChange={setActiveMode} />
+        <ModeRail activeMode={activeMode} onChange={handleModeChange} />
         <LibraryPanel
           onAddTrack={addTrack}
           onUpload={() => fileInputRef.current?.click()}
@@ -1193,8 +1319,11 @@ function App() {
           onSelectTrack={setSelectedTrackId}
           onTrackUpdate={updateTrack}
           onToggleSnap={() => {
-            setSnapEnabled((current) => !current)
-            setRenderStatus(`Snap ${snapEnabled ? 'off' : 'on'}`)
+            setSnapEnabled((current) => {
+              const next = !current
+              setRenderStatus(`Snap ${next ? 'on' : 'off'}`)
+              return next
+            })
           }}
           onSplitClip={splitSelectedClip}
           onToggleSelectedMonitoring={toggleSelectedMonitoring}
@@ -1229,9 +1358,11 @@ function App() {
           projectBpm={transport.bpm}
           projectKey={transport.key}
           latency={latency}
-          onTabChange={setActiveTab}
+          isAutoFinishing={isAutoFinishing}
+          onTabChange={handleInspectorTabChange}
           onPromptChange={setAiPrompt}
           onRunAi={runAiMix}
+          onRunAutoMixMaster={runAutoMixAndMaster}
           onMasterChange={setMasterSettings}
           onRunMaster={runMaster}
           onMasterABToggle={() => {

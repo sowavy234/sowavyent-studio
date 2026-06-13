@@ -55,6 +55,11 @@ button {
   border: 0;
 }
 
+button:disabled {
+  opacity: 0.58;
+  cursor: wait;
+}
+
 #root {
   min-height: 100vh;
 }
@@ -760,6 +765,19 @@ button {
 .action-button {
   width: 100%;
   margin-top: 9px;
+}
+
+.ai-action-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.ai-action-row .action-button,
+.ai-action-row .text-button {
+  width: 100%;
+  margin-top: 0;
 }
 
 .ai-log {
@@ -2065,7 +2083,8 @@ button {
   .world-hero-stats,
   .world-layer-grid,
   .world-toolbar,
-  .world-transform-grid {
+  .world-transform-grid,
+  .ai-action-row {
     grid-template-columns: 1fr;
   }
 }

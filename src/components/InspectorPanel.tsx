@@ -40,6 +40,7 @@ interface InspectorPanelProps {
   micLevel: number
   micMonitor: boolean
   isRecording: boolean
+  isAutoFinishing: boolean
   autoTune: AutoTuneSettings
   detectedNote: string
   targetNote: string
@@ -52,6 +53,7 @@ interface InspectorPanelProps {
   onTabChange: (tab: InspectorTab) => void
   onPromptChange: (value: string) => void
   onRunAi: () => void
+  onRunAutoMixMaster: () => void
   onMasterChange: (settings: MasterSettings) => void
   onRunMaster: () => void
   onMasterABToggle: () => void
@@ -101,6 +103,7 @@ export function InspectorPanel({
   micLevel,
   micMonitor,
   isRecording,
+  isAutoFinishing,
   autoTune,
   detectedNote,
   targetNote,
@@ -113,6 +116,7 @@ export function InspectorPanel({
   onTabChange,
   onPromptChange,
   onRunAi,
+  onRunAutoMixMaster,
   onMasterChange,
   onRunMaster,
   onMasterABToggle,
@@ -162,10 +166,16 @@ export function InspectorPanel({
             onChange={(event) => onPromptChange(event.target.value)}
             placeholder="Example: make the vocal sit forward, tighten the low end, and match a clean streaming master."
           />
-          <button type="button" className="action-button" onClick={onRunAi}>
-            <Sparkles size={16} />
-            Run mix pass
-          </button>
+          <div className="ai-action-row">
+            <button type="button" className="action-button" onClick={onRunAi}>
+              <Sparkles size={16} />
+              Run mix pass
+            </button>
+            <button type="button" className="text-button strong" onClick={onRunAutoMixMaster} disabled={isAutoFinishing}>
+              <WandSparkles size={16} />
+              {isAutoFinishing ? 'Listening...' : 'AI Auto Mix + Master'}
+            </button>
+          </div>
           <div className="ai-live-matrix">
             <div>
               <span>Live f0</span>

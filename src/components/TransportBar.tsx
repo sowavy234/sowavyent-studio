@@ -7,6 +7,7 @@ import {
   Pause,
   Play,
   Radio,
+  Sparkles,
   Square,
   Timer,
   Upload,
@@ -19,10 +20,12 @@ interface TransportBarProps {
   isPlaying: boolean
   playheadBeat: number
   renderStatus: string
+  isAutoFinishing: boolean
   onPlayPause: () => void
   onStop: () => void
   onRecord: () => void
   onTransportChange: (transport: TransportState) => void
+  onAutoMixMaster: () => void
   onUpload: () => void
   onExport: () => void
 }
@@ -40,10 +43,12 @@ export function TransportBar({
   isPlaying,
   playheadBeat,
   renderStatus,
+  isAutoFinishing,
   onPlayPause,
   onStop,
   onRecord,
   onTransportChange,
+  onAutoMixMaster,
   onUpload,
   onExport,
 }: TransportBarProps) {
@@ -136,6 +141,10 @@ export function TransportBar({
         <button type="button" className="text-button" onClick={onUpload}>
           <Upload size={15} />
           Import
+        </button>
+        <button type="button" className="text-button" onClick={onAutoMixMaster} disabled={isAutoFinishing}>
+          <Sparkles size={15} />
+          {isAutoFinishing ? 'Listening...' : 'AI Finish'}
         </button>
         <button type="button" className="text-button strong" onClick={onExport}>
           <Download size={15} />
