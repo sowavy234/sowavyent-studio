@@ -65,4 +65,14 @@ npm run build
 
 ## Deployment
 
+Current public deployment:
+
+- Repository: `https://github.com/sowavy234/sowavyent-studio`
+- GitHub Pages: `https://sowavy234.github.io/sowavyent-studio/`
+
+Custom domain target:
+
+- Preferred domain: `sowavyent.co`
+- Status on June 12, 2026: not pointed to GitHub Pages yet, so it is not live.
+
 Build static assets with `npm run build` and deploy `dist/` behind HTTPS. For production collaboration and cloud project storage, add a backend with per-project ACLs, short-lived upload URLs, and server-side validation of file type, file size, and ownership.
