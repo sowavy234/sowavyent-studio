@@ -841,6 +841,24 @@ export const createMasterTrack = (): Track => ({
   clips: [],
 })
 
+export const createLiveVocalTrack = (trackId = 'trk-vocal-live'): Track => ({
+  id: trackId,
+  type: 'audio',
+  name: 'Lead Vocal',
+  color: '#ff6b5f',
+  input: 'Live K688 / auto-tune',
+  volume: 0.68,
+  pan: 0.04,
+  meter: 0.42,
+  muted: false,
+  solo: false,
+  armed: true,
+  monitoring: true,
+  inserts: inserts('Live Auto-Tune', 'De-esser', 'Vocal Air'),
+  sends: { reverb: 0.28, delay: 0.18 },
+  clips: [],
+})
+
 export interface SongImportProject {
   projectName: string
   tracks: Track[]
@@ -866,8 +884,6 @@ export function buildSongImportProject(options: {
 
   const backingTrackId = makeId('trk-backing')
   const clipId = makeId('clip-backing')
-  const vocalTrackId = makeId('trk-vocal')
-
   const backingClip: Clip = {
     id: clipId,
     trackId: backingTrackId,
@@ -904,27 +920,9 @@ export function buildSongImportProject(options: {
     clips: [backingClip],
   }
 
-  const vocalTrack: Track = {
-    id: vocalTrackId,
-    type: 'audio',
-    name: 'Lead Vocal',
-    color: '#ff6b5f',
-    input: 'Live K688 / auto-tune',
-    volume: 0.7,
-    pan: 0,
-    meter: 0.42,
-    muted: false,
-    solo: false,
-    armed: true,
-    monitoring: true,
-    inserts: inserts('Live Auto-Tune', 'De-esser', 'Vocal Air'),
-    sends: { reverb: 0.28, delay: 0.18 },
-    clips: [],
-  }
-
   return {
     projectName: songName,
-    tracks: [backingTrack, vocalTrack, createMasterTrack()],
+    tracks: [backingTrack, createMasterTrack()],
     transport: {
       bpm,
       key,
@@ -938,8 +936,8 @@ export function buildSongImportProject(options: {
     aiLog: [
       {
         id: makeId('ai'),
-        title: 'New vocal session opened',
-        detail: `${songName} loaded as backing track. Live monitor and auto-tune are armed for recording over the song.`,
+        title: 'Song imported into clean session',
+        detail: `${songName} loaded as the only arrangement track. Add or arm a vocal track when you are ready to record over it.`,
         confidence: 96,
       },
     ],

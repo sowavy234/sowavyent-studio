@@ -10,6 +10,7 @@ import { TransportBar } from './components/TransportBar'
 import {
   buildSongImportProject,
   collaborators,
+  createLiveVocalTrack,
   initialAiLog,
   initialAutoTuneSettings,
   initialLiveAnalysisState,
@@ -506,6 +507,16 @@ function App() {
     setRenderStatus('Stopped')
   }
 
+  const appendTrackToSession = useCallback((track: Track, clipId: string | null = track.clips[0]?.id ?? null) => {
+    setTracks((current) => {
+      const withoutMaster = current.filter((item) => item.type !== 'bus')
+      const master = current.find((item) => item.type === 'bus')
+      return master ? [...withoutMaster, track, master] : [...current, track]
+    })
+    setSelectedTrackId(track.id)
+    setSelectedClipId(clipId)
+  }, [])
+
   const handlePlayPause = () => {
     if (isPlaying) {
       engineRef.current.stop()
@@ -581,7 +592,14 @@ function App() {
       return
     }
 
-    const armedTrack = tracks.find((track) => track.armed && track.type !== 'bus') ?? tracks[0]
+    let armedTrack = tracks.find((track) => track.armed && track.type === 'audio')
+    if (!armedTrack) {
+      armedTrack = createLiveVocalTrack(makeId('trk-vocal'))
+      appendTrackToSession(armedTrack, null)
+      setActiveTab('mic')
+      setRenderStatus(`${armedTrack.name} armed for recording`)
+    }
+
     recordingTrackIdRef.current = armedTrack.id
     recordingStartBeatRef.current = Math.floor(playheadBeat / 4) * 4
     recorderChunksRef.current = []
@@ -643,7 +661,7 @@ function App() {
     setIsRecording(true)
     setActiveTab('mic')
     setRenderStatus('Recording K688 take')
-  }, [addRecordedMicClip, armMicInput, playheadBeat, tracks])
+  }, [addRecordedMicClip, appendTrackToSession, armMicInput, playheadBeat, tracks])
 
   const runMicCalibration = useCallback(async () => {
     setActiveTab('mic')
@@ -690,16 +708,6 @@ function App() {
     } else if (typeof patch.monitoring === 'boolean') {
       setRenderStatus(`${target.name} monitoring ${patch.monitoring ? 'on' : 'off'}`)
     }
-  }
-
-  const appendTrackToSession = (track: Track, clipId: string | null = track.clips[0]?.id ?? null) => {
-    setTracks((current) => {
-      const withoutMaster = current.filter((item) => item.type !== 'bus')
-      const master = current.find((item) => item.type === 'bus')
-      return master ? [...withoutMaster, track, master] : [...current, track]
-    })
-    setSelectedTrackId(track.id)
-    setSelectedClipId(clipId)
   }
 
   const pushAiLog = (entry: AiLogEntry, limit = 6) => {
@@ -1037,8 +1045,8 @@ function App() {
         waveform: starterWave(file.size % 29, 64),
       })
 
-      const vocalTrack = imported.tracks.find((track) => track.armed && track.type === 'audio')
-      const backingClip = imported.tracks.find((track) => track.type === 'audio' && !track.armed)?.clips[0]
+      const songTrack = imported.tracks.find((track) => track.type === 'audio' && track.clips.length > 0)
+      const backingClip = songTrack?.clips[0] ?? null
 
       setProjectTitle(imported.projectName)
       setTracks(imported.tracks)
@@ -1050,14 +1058,13 @@ function App() {
       setWorldEngine(initialWorldVocalEngine)
       setLiveAnalysis(initialLiveAnalysisState)
       setDetectedPitch({ hz: 0, note: '—', target: '—', correctionCents: 0 })
-      setMicMonitor(true)
-      setActiveTab('mic')
+      setMicMonitor(false)
+      setMicStatus('K688 not armed')
+      setActiveTab('clip')
       setActiveMode('studio')
-      setSelectedTrackId(vocalTrack?.id ?? imported.tracks[0].id)
+      setSelectedTrackId(songTrack?.id ?? imported.tracks[0].id)
       setSelectedClipId(backingClip?.id ?? null)
-      setRenderStatus('New vocal project opened — arm mic and sing over your song')
-
-      void armMicInput({ monitor: true })
+      setRenderStatus('Song imported into a clean arrangement')
     } catch (error) {
       setRenderStatus(error instanceof Error ? error.message : 'Audio import failed')
     } finally {
